@@ -9,11 +9,11 @@ tomcat 源码分析
 
 ## 2. 环境配置
 
-1. 先把项目下载到本地，在终端执行下面这条 git 命令：
+1、先把项目下载到本地，在终端执行下面这条 git 命令：
 ```
 git clone https://github.com/ypfssm/tomcat-analysis.git
 ```
-2. 在 IDE（idea 或 eclipse） 中设置 org.apache.catalina.startup.Bootstrap 这个启动类的 JVM 参数如下：
+2、在 IDE（idea 或 eclipse） 中设置 org.apache.catalina.startup.Bootstrap 这个启动类的 JVM 参数如下：
 ```
 -Dcatalina.home=<tomcat-analysis 这个项目所在的文件路径>/tomcat-analysis/home
 -Dfile.encoding=UTF-8
