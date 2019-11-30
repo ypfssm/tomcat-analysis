@@ -24,8 +24,8 @@ git clone https://github.com/ypfssm/tomcat-analysis.git
 这样环境就配好了，是不是很简单。嘿嘿嘿！！！
 
 > idea 中如何设置 JVM 参数教程：https://blog.csdn.net/wangnayu/article/details/76794112
-
 eclipse 中如何设置 JVM 参数教程：https://blog.csdn.net/FS1360472174/article/details/51147051
+
 ## 3. 项目启动
 1、先把终端（Terminal）切换到 Maven 项目的根目录，比如：/shuaifei/IdeaProjects/tomcat-analysis/，然后执行 maven 命令：
 ````
