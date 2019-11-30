@@ -1,5 +1,6 @@
 # tomcat-analysis
-tomcat 源码分析
+tomcat 源码分析。后续会在代码中补充中文注解，以及我的一些思考。
+该项目是直接从 tomcat 官网上下载下来的 tomcat 源码，只不过我把它配置成了一个 maven 项目，从而方便在学习的过程 debug。
 
 ## 1. 说明
 该项目的环境版本为：
