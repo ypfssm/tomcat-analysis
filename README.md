@@ -1,5 +1,5 @@
 # tomcat-analysis
-tomcat 源码分析。后续会在代码中补充中文注解，以及我的一些思考。
+tomcat 源码分析。后续会在代码中补充中文注释，以及我的一些思考。
 该项目是直接从 tomcat 官网上下载下来的 tomcat 源码，只不过我把它配置成了一个 maven 项目，从而方便在学习的过程 debug。
 
 ## 1. 说明
@@ -24,7 +24,8 @@ git clone https://github.com/ypfssm/tomcat-analysis.git
 这样环境就配好了，是不是很简单。嘿嘿嘿！！！
 
 > idea 中如何设置 JVM 参数教程：https://blog.csdn.net/wangnayu/article/details/76794112
-> eclipse 中如何设置 JVM 参数教程：https://blog.csdn.net/FS1360472174/article/details/51147051
+
+eclipse 中如何设置 JVM 参数教程：https://blog.csdn.net/FS1360472174/article/details/51147051
 ## 3. 项目启动
 1、先把终端（Terminal）切换到 Maven 项目的根目录，比如：/shuaifei/IdeaProjects/tomcat-analysis/，然后执行 maven 命令：
 ````
