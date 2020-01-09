@@ -16,36 +16,6 @@
  */
 package org.apache.tomcat.util.net;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
-import java.nio.channels.CancelledKeyException;
-import java.nio.channels.Channel;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.CompletionHandler;
-import java.nio.channels.FileChannel;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLSession;
-
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
@@ -55,6 +25,25 @@ import org.apache.tomcat.util.collections.SynchronizedStack;
 import org.apache.tomcat.util.net.AbstractEndpoint.Handler.SocketState;
 import org.apache.tomcat.util.net.NioChannel.ClosedNioChannel;
 import org.apache.tomcat.util.net.jsse.JSSESupport;
+
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * NIO tailored thread pool, providing the following services:
@@ -110,7 +99,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
 
     /**
-     * Generic properties, introspected
+     * Generic properties, introspected（内省）
      */
     @Override
     public boolean setProperty(String name, String value) {
@@ -417,6 +406,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 }
             }
             NioSocketWrapper socketWrapper = new NioSocketWrapper(channel, this);
+            // todo 为什么要设置 NioSocketWrapper 与 NioChannel 关联
             connections.put(channel, socketWrapper);
             channel.reset(socket, socketWrapper);
             socketWrapper.setReadTimeout(getConnectionTimeout());
@@ -506,6 +496,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         @Override
         public void run() {
             if (interestOps == OP_REGISTER) {
+                // 注册事件由 Acceptor 注册到 Poller
                 try {
                     socket.getIOChannel().register(socket.getSocketWrapper().getPoller().getSelector(), SelectionKey.OP_READ, socket.getSocketWrapper());
                 } catch (Exception x) {
@@ -525,6 +516,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                         } catch (Exception ignore) {
                         }
                     } else {
+                        // 注册新的事件到 Poller
                         final NioSocketWrapper socketWrapper = (NioSocketWrapper) key.attachment();
                         if (socketWrapper != null) {
                             // We are registering the key to start with, reset the fairness counter.
@@ -563,6 +555,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         // Optimize expiration handling
         private long nextExpiration = 0;
 
+        // todo 有什么意义？
         private AtomicLong wakeupCounter = new AtomicLong(0);
 
         private volatile int keyCount = 0;
@@ -588,6 +581,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
         private void addEvent(PollerEvent event) {
             events.offer(event);
+            // todo 为什么要判断  == 0 ？？？
             if (wakeupCounter.incrementAndGet() == 0) {
                 selector.wakeup();
             }
@@ -633,6 +627,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 result = true;
                 try {
                     pe.run();
+                    // 为什么加入对象池前需要 reset 该对象？使用完就给人家还原回去。
                     pe.reset();
                     if (running && !paused && eventCache != null) {
                         eventCache.push(pe);
@@ -699,6 +694,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
             // Loop until destroy() is called
             while (true) {
 
+                // todo 1、2 如何切换？？keyCount、wakeupCounter？？？
+                // 1. 处理 event 优先级高 ！！！
+                // 2. 遍历 SelectionKey
+
                 boolean hasEvents = false;
 
                 try {
@@ -711,6 +710,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                         } else {
                             keyCount = selector.select(selectorTimeout);
                         }
+                        // todo 为什么要设为 0 ？？？ wakeupCounter = 0
                         wakeupCounter.set(0);
                     }
                     if (close) {
@@ -729,6 +729,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                     continue;
                 }
                 // Either we timed out or we woke up, process events first
+                // 如果 selector.select 调用超时或被唤醒，那先执行 events。
                 if (keyCount == 0) {
                     hasEvents = (hasEvents | events());
                 }
@@ -739,6 +740,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 // any active event.
                 while (iterator != null && iterator.hasNext()) {
                     SelectionKey sk = iterator.next();
+                    // todo 为什么要把 NioSocketWrapper 放到 SelectionKey 的 attachment 中。
                     NioSocketWrapper socketWrapper = (NioSocketWrapper) sk.attachment();
                     // Attachment may be null if another thread has called
                     // cancelledKey()
@@ -766,6 +768,12 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                         if (socketWrapper.getSendfileData() != null) {
                             processSendfile(sk, socketWrapper, false);
                         } else {
+                            /**
+                             * 取消读事件，防止多个线程对同一个 Socket 进行处理。
+                             * 想象一种场景，如果一个 http 请求的包只来了一部分，也就是 SocketProcess 在等待后面一部分，
+                             * 后面部分来的时候，触发读事件，重新创建一个 SocketProcessor，这样会导致两个 processor 同时
+                             * 处理一个 Socket 数据，会导致混乱。
+                             */
                             unreg(sk, socketWrapper, sk.readyOps());
                             boolean closeSocket = false;
                             // Read goes before write
@@ -1013,6 +1021,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
     // --------------------------------------------------- Socket Wrapper Class
 
+    // todo 这个类的作用是啥
     public static class NioSocketWrapper extends SocketWrapperBase<NioChannel> {
 
         private final NioSelectorPool pool;
@@ -1430,6 +1439,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         }
 
         private class NioOperationState<A> extends OperationState<A> {
+            // 是否内联
             private volatile boolean inline = true;
             private NioOperationState(boolean read, ByteBuffer[] buffers, int offset, int length,
                     BlockingMode block, long timeout, TimeUnit unit, A attachment, CompletionCheck check,
@@ -1533,6 +1543,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
     /**
      * This class is the equivalent of the Worker, but will simply use in an
      * external Executor thread pool.
+     *
+     * 业务处理线程任务。负责 TSL 握手，以及调用 http 协议处理器（http 请求头的解析，把 http 请求传给容器处理）。
+     *
+     * 注意：SocketProcessor 是 NioEndpoint 的内部类。
      */
     protected class SocketProcessor extends SocketProcessorBase<NioChannel> {
 
@@ -1542,8 +1556,11 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
         @Override
         protected void doRun() {
+            // 为了适配不同的 Channel，tomcat 在 Channel 上封装了一层，SocketWrapper。
             NioChannel socket = socketWrapper.getSocket();
+            // NIO 事件就绪后返回的对象 SelectionKey
             SelectionKey key = socket.getIOChannel().keyFor(socket.getSocketWrapper().getPoller().getSelector());
+            // 通过宿主类找到 Poller
             Poller poller = NioEndpoint.this.poller;
             if (poller == null) {
                 socketWrapper.close();

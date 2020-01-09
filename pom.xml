@@ -62,7 +62,7 @@
     <build>
         <finalName>tomcat-analysis</finalName>
         <sourceDirectory>java</sourceDirectory>
-        <!--<testSourceDirectory>test</testSourceDirectory>  test 下的有些文件报错，因此将test文件夹去掉了-->
+        <testSourceDirectory>test</testSourceDirectory>
         <resources>
             <resource>
                 <directory>java</directory>

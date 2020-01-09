@@ -16,6 +16,11 @@
  */
 package org.apache.tomcat.util.net;
 
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+import org.apache.tomcat.util.ExceptionUtils;
+import org.apache.tomcat.util.res.StringManager;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -32,11 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
-import org.apache.tomcat.util.ExceptionUtils;
-import org.apache.tomcat.util.res.StringManager;
 
 public abstract class SocketWrapperBase<E> {
 
@@ -103,6 +103,7 @@ public abstract class SocketWrapperBase<E> {
      */
     protected final WriteBuffer nonBlockingWriteBuffer = new WriteBuffer(bufferedWriteSize);
 
+    // todo ??? 为什么需要设置 读、写信号量？
     protected final Semaphore readPending;
     protected volatile OperationState<?> readOperation = null;
     protected final Semaphore writePending;
@@ -1019,6 +1020,10 @@ public abstract class SocketWrapperBase<E> {
 
     /**
      * Internal state tracker for vectored operations.
+     *
+     * 用于矢量化（vectored）操作的内部状态跟踪器。？？？
+     *
+     * https://stackoverflow.com/questions/1422149/what-is-vectorization
      */
     protected abstract class OperationState<A> implements Runnable {
         protected final boolean read;
